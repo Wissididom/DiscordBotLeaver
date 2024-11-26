@@ -1,4 +1,3 @@
-import "dotenv/config";
 const response = await fetch("https://discord.com/api/v10/users/@me/guilds", {
   method: "GET",
   headers: {
