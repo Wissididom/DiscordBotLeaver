@@ -25,21 +25,51 @@ jobs:
       - name: Install dependencies
         run: |
           deno install
-      - name: Compile
+      - name: Compile get-guilds.ts
         run: |
-          deno compile -EN main.ts
-      - name: Upload artifact (Windows)
+          deno compile -EN get-guilds.ts
+      - name: Compile get.ts
+        run: |
+          deno compile -EN get.ts
+      - name: Compile leave-all-guilds.ts
+        run: |
+          deno compile -EN leave-all-guilds.ts
+      - name: Upload get-guilds.exe (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: actions/upload-artifact@v4
         with:
-          name: DiscordBotLeaver-${{ matrix.os }}
-          path: DiscordBotLeaver.exe
-      - name: Upload artifact (Ubuntu and Mac)
+          name: get-guilds-${{ matrix.os }}
+          path: get-guilds.exe
+      - name: Upload get.exe (Windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: actions/upload-artifact@v4
+        with:
+          name: get-${{ matrix.os }}
+          path: get.exe
+      - name: Upload leave-all-guilds.exe (Windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: actions/upload-artifact@v4
+        with:
+          name: leave-all-guilds-${{ matrix.os }}
+          path: leave-all-guilds.exe
+      - name: Upload get-guilds (Ubuntu and Mac)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         uses: actions/upload-artifact@v4
         with:
-          name: DiscordBotLeaver-${{ matrix.os }}
-          path: DiscordBotLeaver
+          name: get-guilds-${{ matrix.os }}
+          path: get-guilds
+      - name: Upload get (Ubuntu and Mac)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        uses: actions/upload-artifact@v4
+        with:
+          name: get-${{ matrix.os }}
+          path: get
+      - name: Upload leave-all-guilds (Ubuntu and Mac)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        uses: actions/upload-artifact@v4
+        with:
+          name: leave-all-guilds-${{ matrix.os }}
+          path: leave-all-guilds
   create-release:
     needs: [build]
     runs-on: ubuntu-latest
@@ -49,33 +79,75 @@ jobs:
       - uses: actions/checkout@v4
         name: Checkout Code
 
-      # Windows
       - uses: actions/download-artifact@v4
-        name: Download Windows
+        name: Download get-guilds.exe (Windows)
         with:
-          name: DiscordBotLeaver-windows-latest
+          name: get-guilds-windows-latest
           path: release-artifacts/
 
-      - name: Rename Windows Binary
-        run: mv release-artifacts/DiscordBotLeaver.exe release-artifacts/DiscordBotLeaver-Windows.exe
-
       - uses: actions/download-artifact@v4
-        name: Download Linux
+        name: Download get.exe (Windows)
         with:
-          name: DiscordBotLeaver-ubuntu-latest
+          name: get-windows-latest
           path: release-artifacts/
 
-      - name: Rename Linux Binary
-        run: mv release-artifacts/DiscordBotLeaver release-artifacts/DiscordBotLeaver-Linux
-
       - uses: actions/download-artifact@v4
-        name: Download Mac
+        name: Download leave-all-guilds.exe (Windows)
         with:
-          name: DiscordBotLeaver-macos-latest
+          name: leave-all-guilds-windows-latest
           path: release-artifacts/
 
-      - name: Rename Mac Binary
-        run: mv release-artifacts/DiscordBotLeaver release-artifacts/DiscordBotLeaver-Mac
+      - name: Rename Windows Binaries
+        run: |
+          mv release-artifacts/get-guilds.exe release-artifacts/get-guilds-Windows.exe
+          mv release-artifacts/get.exe release-artifacts/get-Windows.exe
+          mv release-artifacts/leave-all-guilds.exe release-artifacts/leave-all-guilds-Windows.exe
+
+      - uses: actions/download-artifact@v4
+        name: Download get-guilds (Linux)
+        with:
+          name: get-guilds-ubuntu-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download get (Linux)
+        with:
+          name: get-ubuntu-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download leave-all-guilds (Linux)
+        with:
+          name: leave-all-guilds-ubuntu-latest
+          path: release-artifacts/
+      - name: Rename Linux Binaries
+        run: |
+          mv release-artifacts/get-guilds release-artifacts/get-guilds-Linux
+          mv release-artifacts/get release-artifacts/get-Linux
+          mv release-artifacts/leave-all-guilds release-artifacts/leave-all-guilds-Linux
+
+      - uses: actions/download-artifact@v4
+        name: Download get-guilds (Mac)
+        with:
+          name: get-guilds-macos-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download get (Mac)
+        with:
+          name: get-macos-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download leave-all-guilds (Mac)
+        with:
+          name: leave-all-guilds-macos-latest
+          path: release-artifacts/
+      - name: Rename Linux Binaries
+        run: |
+          mv release-artifacts/get-guilds release-artifacts/get-guilds-Mac
+          mv release-artifacts/get release-artifacts/get-Mac
+          mv release-artifacts/leave-all-guilds release-artifacts/leave-all-guilds-Mac
 
       - name: Create release
         uses: ncipollo/release-action@v1.14.0
