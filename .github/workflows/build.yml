@@ -1,0 +1,168 @@
+name: Deno Build
+permissions:
+  "contents": "write"
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+    branches: ["master", "main"]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Install dependencies
+        run: |
+          deno install
+      - name: Compile get-guilds.ts
+        run: |
+          deno compile -EN get-guilds.ts
+      - name: Compile get.ts
+        run: |
+          deno compile -EN get.ts
+      - name: Compile leave-all-guilds.ts
+        run: |
+          deno compile -EN leave-all-guilds.ts
+      - name: Upload get-guilds.exe (Windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: actions/upload-artifact@v4
+        with:
+          name: get-guilds-${{ matrix.os }}
+          path: get-guilds.exe
+      - name: Upload get.exe (Windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: actions/upload-artifact@v4
+        with:
+          name: get-${{ matrix.os }}
+          path: get.exe
+      - name: Upload leave-all-guilds.exe (Windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: actions/upload-artifact@v4
+        with:
+          name: leave-all-guilds-${{ matrix.os }}
+          path: leave-all-guilds.exe
+      - name: Upload get-guilds (Ubuntu and Mac)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        uses: actions/upload-artifact@v4
+        with:
+          name: get-guilds-${{ matrix.os }}
+          path: get-guilds
+      - name: Upload get (Ubuntu and Mac)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        uses: actions/upload-artifact@v4
+        with:
+          name: get-${{ matrix.os }}
+          path: get
+      - name: Upload leave-all-guilds (Ubuntu and Mac)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        uses: actions/upload-artifact@v4
+        with:
+          name: leave-all-guilds-${{ matrix.os }}
+          path: leave-all-guilds
+  create-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout Code
+
+      - uses: actions/download-artifact@v4
+        name: Download get-guilds.exe (Windows)
+        with:
+          name: get-guilds-windows-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download get.exe (Windows)
+        with:
+          name: get-windows-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download leave-all-guilds.exe (Windows)
+        with:
+          name: leave-all-guilds-windows-latest
+          path: release-artifacts/
+
+      - name: Rename Windows Binaries
+        run: |
+          mv release-artifacts/get-guilds.exe release-artifacts/get-guilds-Windows.exe
+          mv release-artifacts/get.exe release-artifacts/get-Windows.exe
+          mv release-artifacts/leave-all-guilds.exe release-artifacts/leave-all-guilds-Windows.exe
+
+      - uses: actions/download-artifact@v4
+        name: Download get-guilds (Linux)
+        with:
+          name: get-guilds-ubuntu-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download get (Linux)
+        with:
+          name: get-ubuntu-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download leave-all-guilds (Linux)
+        with:
+          name: leave-all-guilds-ubuntu-latest
+          path: release-artifacts/
+      - name: Rename Linux Binaries
+        run: |
+          mv release-artifacts/get-guilds release-artifacts/get-guilds-Linux
+          mv release-artifacts/get release-artifacts/get-Linux
+          mv release-artifacts/leave-all-guilds release-artifacts/leave-all-guilds-Linux
+
+      - uses: actions/download-artifact@v4
+        name: Download get-guilds (Mac)
+        with:
+          name: get-guilds-macos-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download get (Mac)
+        with:
+          name: get-macos-latest
+          path: release-artifacts/
+
+      - uses: actions/download-artifact@v4
+        name: Download leave-all-guilds (Mac)
+        with:
+          name: leave-all-guilds-macos-latest
+          path: release-artifacts/
+      - name: Rename Linux Binaries
+        run: |
+          mv release-artifacts/get-guilds release-artifacts/get-guilds-Mac
+          mv release-artifacts/get release-artifacts/get-Mac
+          mv release-artifacts/leave-all-guilds release-artifacts/leave-all-guilds-Mac
+
+      - name: Create release
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          replacesArtifacts: true
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: "release-artifacts/*"
+          body: ${{ github.event.head_commit.message }}
+          prerelease: true
+          name: Nightly Release
+          tag: nightly-build
+
+      - name: Update nightly-build tag
+        run: |
+          git tag -f nightly-build
+          git push -f origin nightly-build
+        shell: bash
